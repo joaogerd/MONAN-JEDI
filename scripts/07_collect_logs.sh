@@ -30,8 +30,11 @@ scan_file_for_errors() {
   esac
 
   grep -nEi \
-    '(^|[[:space:]])(error:|fatal:|failed|segmentation fault|undefined reference|CMake Error|No such file or directory|permission denied|killed|abort)' \
-    "${file}" 2>/dev/null || true
+    '(^|[[:space:]])(error:|fatal:|segmentation fault|undefined reference|CMake Error|No such file or directory|permission denied|killed|abort|[1-9][0-9]* tests failed)' \
+    "${file}" 2>/dev/null \
+    | grep -viE 'Performing Test .* - Failed' \
+    | grep -viE '100% tests passed, 0 tests failed' \
+    || true
 }
 
 {
