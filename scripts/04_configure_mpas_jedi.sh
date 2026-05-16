@@ -11,10 +11,12 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=00_common.sh
 source "${script_dir}/00_common.sh"
 
+# ecbuild, cmake and python are provided by the loaded spack-stack environment.
+# Therefore the stack must be loaded before checking these commands.
+load_monan_jedi_stack
 require_cmd ecbuild
 require_cmd cmake
 require_cmd python
-load_monan_jedi_stack
 
 if [[ ! -d "${JEDI_BUNDLE_SRC_DIR}/.git" ]]; then
   log_error "JEDI bundle source not found: ${JEDI_BUNDLE_SRC_DIR}"
