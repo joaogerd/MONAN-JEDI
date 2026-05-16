@@ -37,6 +37,24 @@ export JEDI_BUNDLE_BUILD_DIR="${JEDI_BUNDLE_BUILD_DIR:-${MONAN_JEDI_WORK_ROOT}/b
 
 mkdir -p "${MONAN_JEDI_WORK_ROOT}" "${MONAN_JEDI_LOG_ROOT}"
 
+reset_jaci_modules() {
+  # Start from a clean module state. This avoids conflicts when the user shell
+  # already has generated Spack modules loaded, for example gcc/12.3.0/zstd/1.5.7.
+  module --force purge 2>/dev/null || module purge 2>/dev/null || true
+
+  for d in \
+    /opt/cray/pe/modulefiles \
+    /opt/cray/modulefiles \
+    /opt/cray/pe/craype-targets/default/modulefiles \
+    /p/app/modulefiles \
+    /opt/cray/pals/modulefiles
+  do
+    if [[ -d "${d}" ]]; then
+      module use "${d}"
+    fi
+  done
+}
+
 load_monan_jedi_stack() {
   if [[ ! -d "${STACK_ROOT}" ]]; then
     log_error "STACK_ROOT not found: ${STACK_ROOT}"
@@ -49,6 +67,8 @@ load_monan_jedi_stack() {
     log_error "Run module generation in spack-stack-inpe first."
     exit 1
   fi
+
+  reset_jaci_modules
 
   cd "${STACK_ROOT}"
   # shellcheck disable=SC1091
