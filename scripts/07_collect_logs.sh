@@ -18,6 +18,22 @@ if [[ ! -d "${MONAN_JEDI_LOG_ROOT}" ]]; then
   exit 1
 fi
 
+scan_file_for_errors() {
+  local file="$1"
+
+  # Avoid scanning generated summaries recursively and avoid known files where
+  # words like FATAL_ERROR appear only inside an intentional CMake diff.
+  case "$(basename "${file}")" in
+    07_summary.log|03_mpas_only_cmake_patch.log)
+      return 0
+      ;;
+  esac
+
+  grep -nEi \
+    '(^|[[:space:]])(error:|fatal:|failed|segmentation fault|undefined reference|CMake Error|No such file or directory|permission denied|killed|abort)' \
+    "${file}" 2>/dev/null || true
+}
+
 {
   echo "# MONAN-JEDI log summary"
   echo "GeneratedAt=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -31,12 +47,16 @@ fi
   echo "## Last build lines"
   tail -n 120 "${MONAN_JEDI_LOG_ROOT}/05_make.log" 2>/dev/null || true
   echo
-  echo "## Last ctest lines"
-  tail -n 120 "${MONAN_JEDI_LOG_ROOT}/06_ctest.log" 2>/dev/null || true
+  echo "## Login-node CTest summary"
+  tail -n 80 "${MONAN_JEDI_LOG_ROOT}/06_ctest.log" 2>/dev/null || true
   echo
-  echo "## Error scan"
-  grep -RniE "error|failed|cannot|undefined reference|CMake Error|No such file|permission denied|fatal|killed" \
-    "${MONAN_JEDI_LOG_ROOT}" | head -n 200 || true
+  echo "## PBS CTest summary"
+  tail -n 80 "${MONAN_JEDI_LOG_ROOT}/06_ctest_pbs.log" 2>/dev/null || true
+  echo
+  echo "## Focused error scan"
+  while IFS= read -r file; do
+    scan_file_for_errors "${file}" | sed "s#^#${file}:#"
+  done < <(find "${MONAN_JEDI_LOG_ROOT}" -type f | sort) | head -n 200
 } | tee "${MONAN_JEDI_LOG_ROOT}/07_summary.log"
 
 log_info "Log collection completed: ${MONAN_JEDI_LOG_ROOT}/07_summary.log"
