@@ -3,6 +3,10 @@
 # 02_prepare_jedi_bundle.sh
 # =============================================================================
 # Clone or update JCSDA/jedi-bundle and initialize submodules.
+#
+# This source-preparation step does not need the spack-stack runtime module.
+# Keeping it independent avoids sourcing the shared stack administration setup
+# when users only need to clone/update their own bundle workspace.
 # =============================================================================
 
 set -euo pipefail
@@ -12,7 +16,6 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${script_dir}/00_common.sh"
 
 require_cmd git
-load_monan_jedi_stack
 
 mkdir -p "$(dirname "${JEDI_BUNDLE_SRC_DIR}")" "${MONAN_JEDI_LOG_ROOT}"
 
