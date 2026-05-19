@@ -3,6 +3,9 @@
 # 03_create_mpas_only_bundle.sh
 # =============================================================================
 # Replace jedi-bundle CMakeLists.txt with a reduced MPAS-JEDI-only bundle.
+#
+# This source-editing step does not need the spack-stack runtime module. It only
+# edits the user-owned JEDI bundle source tree.
 # =============================================================================
 
 set -euo pipefail
@@ -10,8 +13,6 @@ set -euo pipefail
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=00_common.sh
 source "${script_dir}/00_common.sh"
-
-load_monan_jedi_stack
 
 if [[ ! -d "${JEDI_BUNDLE_SRC_DIR}/.git" ]]; then
   log_error "JEDI bundle source not found: ${JEDI_BUNDLE_SRC_DIR}"
