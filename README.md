@@ -23,37 +23,63 @@ cray-mpich/8.1.31
 jedi-mpas-env/1.0.0
 ```
 
-The stack must already have been created and validated by `spack-stack-inpe` before running the scripts in this repository.
+The stack must already have been created and validated by `spack-stack-inpe` before running the workflow in this repository.
 
-## Expected stack location
+## Configuration
 
-By default, scripts expect:
+Runtime settings are centralized in YAML files under `config/`.
+
+For JACI, the default configuration is:
 
 ```text
-/p/projetos/monan_das/${USER}/work/${STACK_TEST_ID}/spack-stack
+config/jaci.yaml
 ```
 
-where `STACK_TEST_ID` is the identifier used when the stack was created by `spack-stack-inpe`.
+This file defines the stack instance, stack module, workflow run identifier, compiler wrappers, MPI wrappers, JEDI bundle reference, build options, CTest options and PBS options.
 
-Example:
+A generic template for new sites is available at:
 
-```bash
-export STACK_TEST_ID="spack-stack-inpe-overlay-20260515T181917Z"
+```text
+config/template.yaml
 ```
 
 ## Workflow
 
-```bash
-export STACK_TEST_ID="spack-stack-inpe-overlay-20260515T181917Z"
-export MONAN_JEDI_TEST_ID="monan-jedi-mpas-only-$(date -u +%Y%m%dT%H%M%SZ)"
+The main entry point is the orchestrator:
 
-bash scripts/01_load_stack_env.sh
-bash scripts/02_prepare_jedi_bundle.sh
-bash scripts/03_create_mpas_only_bundle.sh
-bash scripts/04_configure_mpas_jedi.sh
-bash scripts/05_build_mpas_jedi.sh
-bash scripts/06_test_mpas_jedi.sh
-bash scripts/07_collect_logs.sh
+```bash
+bash scripts/monan-jedi.sh <command> --config config/jaci.yaml
+```
+
+Available commands:
+
+```text
+load        Load and validate the spack-stack environment
+prepare     Clone/update jedi-bundle
+reduce      Generate the reduced MPAS-JEDI-only bundle logic
+configure   Configure the bundle with ecbuild
+build       Build the configured bundle
+test        Run the login-node-safe CTest subset
+test-pbs    Submit CTest to PBS
+logs        Collect logs
+all         Run the main workflow sequence
+```
+
+Example:
+
+```bash
+bash scripts/monan-jedi.sh load --config config/jaci.yaml
+bash scripts/monan-jedi.sh prepare --config config/jaci.yaml
+bash scripts/monan-jedi.sh configure --config config/jaci.yaml
+bash scripts/monan-jedi.sh build --config config/jaci.yaml
+bash scripts/monan-jedi.sh test --config config/jaci.yaml
+bash scripts/monan-jedi.sh logs --config config/jaci.yaml
+```
+
+Or, for the full sequence:
+
+```bash
+bash scripts/monan-jedi.sh all --config config/jaci.yaml
 ```
 
 ## Repository layout
@@ -61,19 +87,30 @@ bash scripts/07_collect_logs.sh
 ```text
 MONAN-JEDI/
 ├── README.md
+├── config/
+│   ├── jaci.yaml
+│   └── template.yaml
 ├── docs/
 │   └── JACI_MPAS_JEDI_BUILD_STEPS.md
 └── scripts/
-    ├── 00_common.sh
-    ├── 01_load_stack_env.sh
-    ├── 02_prepare_jedi_bundle.sh
-    ├── 03_create_mpas_only_bundle.sh
-    ├── 04_configure_mpas_jedi.sh
-    ├── 05_build_mpas_jedi.sh
-    ├── 06_test_mpas_jedi.sh
-    └── 07_collect_logs.sh
+    ├── monan-jedi.sh
+    └── lib/
+        ├── build.sh
+        ├── bundle.sh
+        ├── common.sh
+        ├── config.sh
+        ├── configure.sh
+        ├── logs.sh
+        ├── pbs.sh
+        ├── read_config.py
+        ├── stack.sh
+        └── test.sh
 ```
 
-## Status
+## Design principle
 
-Initial repository scaffold for JACI/MPAS-JEDI validation.
+User-editable settings should live in YAML configuration files, not inside shell scripts.
+
+The shell scripts provide workflow logic. The YAML files describe the site-specific environment.
+
+This keeps the MONAN-JEDI workflow reproducible, easier to review and easier to adapt to additional INPE systems in the future.
