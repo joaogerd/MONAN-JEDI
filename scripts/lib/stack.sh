@@ -2,7 +2,41 @@
 # Stack environment handling.
 
 monan_jedi_reset_modules() {
+  # Start from a clean module state before loading the JACI CrayPE stack.
+  # Some user shells may already have generated Spack modules loaded, for
+  # example gcc/12.3.0/zstd/1.5.7. That module conflicts with gcc-native/12.3,
+  # which is loaded by the JACI site setup.
   module --force purge 2>/dev/null || module purge 2>/dev/null || true
+
+  # Extra defensive cleanup for environments where purge does not fully remove
+  # generated Tcl/Lmod modules or where a module collection restored a compiler.
+  module unload gcc/12.3.0/zstd/1.5.7 2>/dev/null || true
+  module unload gcc 2>/dev/null || true
+  module unload stack-gcc 2>/dev/null || true
+  module unload gcc-native 2>/dev/null || true
+
+  # Remove stale Spack-generated module paths from MODULEPATH before rebuilding
+  # the CrayPE module search path. This avoids finding generated gcc modules
+  # before the site-provided gcc-native module.
+  if [[ -n "${MODULEPATH:-}" ]]; then
+    local cleaned_modulepath=""
+    local entry
+    IFS=':' read -r -a _monan_jedi_modulepath_entries <<< "${MODULEPATH}"
+    for entry in "${_monan_jedi_modulepath_entries[@]}"; do
+      case "${entry}" in
+        *spack*modules*|*spack-stack*modules*|*envs/*/modules*)
+          ;;
+        *)
+          if [[ -z "${cleaned_modulepath}" ]]; then
+            cleaned_modulepath="${entry}"
+          else
+            cleaned_modulepath="${cleaned_modulepath}:${entry}"
+          fi
+          ;;
+      esac
+    done
+    export MODULEPATH="${cleaned_modulepath}"
+  fi
 
   for d in \
     /opt/cray/pe/modulefiles \
@@ -77,6 +111,8 @@ monan_jedi_record_environment_snapshot() {
     echo
     echo "module list:"
     module list 2>&1 || true
+    echo
+    echo "MODULEPATH=${MODULEPATH:-}"
     echo
     echo "tool resolution:"
     command -v ecbuild || true
