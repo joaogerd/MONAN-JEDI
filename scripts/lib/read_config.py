@@ -56,7 +56,7 @@ def main():
         "STACK_MODULE_ROOT": "stack.module_root",
         "STACK_SITE_SETUP": "stack.site_setup",
         "STACK_ENV_MODULE": "stack.env_module",
-        "MONAN_JEDI_RUN_ID": "workflow.run_id",
+        "MONAN_JEDI_RUN_ID": "build.id",
         "MONAN_JEDI_CC": "compilers.cc",
         "MONAN_JEDI_CXX": "compilers.cxx",
         "MONAN_JEDI_FC": "compilers.fc",
