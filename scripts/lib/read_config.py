@@ -1,47 +1,62 @@
 #!/usr/bin/env python3
-"""Read MONAN-JEDI YAML configuration and emit shell exports."""
+"""Read MONAN-JEDI YAML configuration and emit shell exports.
 
-from __future__ import annotations
+This script intentionally avoids Python features newer than Python 3.6 because
+some HPC login environments provide older system Python interpreters.
+"""
 
 import os
 import shlex
 import sys
-from pathlib import Path
 
 try:
     import yaml
-except ImportError as exc:
-    raise SystemExit(
+except ImportError:
+    sys.stderr.write(
         "PyYAML is required to read MONAN-JEDI YAML config. "
-        "Install it or load a Python environment that provides yaml."
-    ) from exc
+        "Install it or load a Python environment that provides yaml.\n"
+    )
+    sys.exit(1)
 
 
-def get(data: dict, path: str, default: str = "") -> str:
+def get_value(data, path, default=""):
+    """Return a nested YAML value using a dotted path."""
     cur = data
     for key in path.split("."):
         if not isinstance(cur, dict) or key not in cur:
             return default
         cur = cur[key]
+
     if cur is None:
         return default
+
     if isinstance(cur, bool):
         return "1" if cur else "0"
+
     return os.path.expandvars(str(cur))
 
 
-def emit(name: str, value: str) -> None:
+def emit(name, value):
+    """Emit a shell-safe export statement.
+
+    Existing environment variables take precedence over YAML values.
+    """
     env_value = os.environ.get(name, value)
-    print(f"export {name}={shlex.quote(env_value)}")
+    sys.stdout.write("export {0}={1}\n".format(name, shlex.quote(env_value)))
 
 
-def main() -> int:
+def read_yaml(path):
+    with open(path, "r") as f:
+        loaded = yaml.safe_load(f)
+    return loaded or {}
+
+
+def main():
     if len(sys.argv) != 2:
-        print("Usage: read_config.py <config.yaml>", file=sys.stderr)
+        sys.stderr.write("Usage: read_config.py <config.yaml>\n")
         return 2
 
-    config_path = Path(sys.argv[1])
-    data = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
+    data = read_yaml(sys.argv[1])
 
     mapping = {
         "PROJECT_ROOT": "project.root",
@@ -95,10 +110,10 @@ def main() -> int:
     }
 
     for env_name, yaml_path in mapping.items():
-        emit(env_name, get(data, yaml_path, defaults.get(env_name, "")))
+        emit(env_name, get_value(data, yaml_path, defaults.get(env_name, "")))
 
     return 0
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    sys.exit(main())
