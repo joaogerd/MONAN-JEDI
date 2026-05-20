@@ -1,5 +1,33 @@
 #!/usr/bin/env python3
-"""Read MONAN-JEDI YAML configuration and emit shell exports."""
+"""Read MONAN-JEDI YAML configuration and emit shell exports.
+
+Purpose
+-------
+This helper is used by ``scripts/lib/config.sh``. It reads a MONAN-JEDI YAML
+configuration file and prints shell ``export`` statements that can be evaluated
+by Bash.
+
+Configuration model
+-------------------
+The YAML file is expected to use a nested structure, for example:
+
+* ``project.*`` for user workspace paths.
+* ``stack.*`` for the shared spack-stack installation.
+* ``build.*`` for the workflow instance.
+* ``compilers.*`` and ``mpi.*`` for wrapper commands.
+* ``ctest.*`` and ``pbs.*`` for test and batch-system settings.
+
+Environment precedence
+----------------------
+If an environment variable already exists, it takes precedence over the YAML
+value. This allows users to override selected settings without editing the YAML
+file.
+
+Expected result
+---------------
+The program writes valid shell assignments to standard output, one per mapped
+environment variable.
+"""
 
 import os
 import shlex
@@ -13,7 +41,27 @@ except ImportError:
 
 
 def get_value(data, path, default=""):
+    """Return a nested YAML value converted to a shell-friendly string.
+
+    Parameters
+    ----------
+    data : dict
+        Parsed YAML document.
+    path : str
+        Dot-separated path inside the YAML document.
+    default : str, optional
+        Value returned when the path is missing or evaluates to ``None``.
+
+    Returns
+    -------
+    str
+        Expanded string value. Boolean values are converted to ``"1"`` or
+        ``"0"`` to make them easier to consume from Bash.
+    """
     cur = data
+
+    # Walk through the dot-separated path, returning the default as soon as a
+    # key is missing or the current object is no longer a dictionary.
     for key in path.split("."):
         if not isinstance(cur, dict) or key not in cur:
             return default
@@ -25,27 +73,36 @@ def get_value(data, path, default=""):
     if isinstance(cur, bool):
         return "1" if cur else "0"
 
+    # Expand variables such as ${USER} that may appear in YAML paths.
     return os.path.expandvars(str(cur))
 
 
 def emit(name, value):
+    """Print one safely quoted shell export statement.
+
+    Existing environment variables take precedence over values read from YAML.
+    This preserves command-line or scheduler-provided overrides.
+    """
     env_value = os.environ.get(name, value)
     sys.stdout.write("export {0}={1}\n".format(name, shlex.quote(env_value)))
 
 
 def read_yaml(path):
-    with open(path, "r") as f:
+    """Read a YAML file and return an empty dictionary for empty documents."""
+    with open(path, "r", encoding="utf-8") as f:
         loaded = yaml.safe_load(f)
     return loaded or {}
 
 
 def main():
+    """Program entry point."""
     if len(sys.argv) != 2:
         sys.stderr.write("Usage: read_config.py <config.yaml>\n")
         return 2
 
     data = read_yaml(sys.argv[1])
 
+    # Map exported environment variables to their YAML paths.
     mapping = {
         "PROJECT_ROOT": "project.root",
         "STACK_OWNER": "stack.owner",
@@ -82,6 +139,8 @@ def main():
         "MONAN_JEDI_SUBMIT_JOB": "pbs.submit_job",
     }
 
+    # Defaults are intentionally conservative and aligned with the JACI reduced
+    # MPAS-JEDI workflow.
     defaults = {
         "STACK_OWNER": os.environ.get("USER", "unknown"),
         "STACK_SITE_SETUP": "configs/sites/tier2/jaci/setup.sh",
