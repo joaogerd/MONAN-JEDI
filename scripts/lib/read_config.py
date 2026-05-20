@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""Read MONAN-JEDI YAML configuration and emit shell exports.
-
-This script intentionally avoids Python features newer than Python 3.6 because
-some HPC login environments provide older system Python interpreters.
-"""
+"""Read MONAN-JEDI YAML configuration and emit shell exports."""
 
 import os
 import shlex
@@ -12,15 +8,11 @@ import sys
 try:
     import yaml
 except ImportError:
-    sys.stderr.write(
-        "PyYAML is required to read MONAN-JEDI YAML config. "
-        "Install it or load a Python environment that provides yaml.\n"
-    )
+    sys.stderr.write("PyYAML is required.\n")
     sys.exit(1)
 
 
 def get_value(data, path, default=""):
-    """Return a nested YAML value using a dotted path."""
     cur = data
     for key in path.split("."):
         if not isinstance(cur, dict) or key not in cur:
@@ -37,10 +29,6 @@ def get_value(data, path, default=""):
 
 
 def emit(name, value):
-    """Emit a shell-safe export statement.
-
-    Existing environment variables take precedence over YAML values.
-    """
     env_value = os.environ.get(name, value)
     sys.stdout.write("export {0}={1}\n".format(name, shlex.quote(env_value)))
 
@@ -60,8 +48,13 @@ def main():
 
     mapping = {
         "PROJECT_ROOT": "project.root",
+        "STACK_OWNER": "stack.owner",
         "STACK_INSTANCE": "stack.instance",
+        "STACK_WORK_ROOT": "stack.work_root",
+        "STACK_ROOT": "stack.root",
         "STACK_ENV_NAME": "stack.env_name",
+        "STACK_MODULE_ROOT": "stack.module_root",
+        "STACK_SITE_SETUP": "stack.site_setup",
         "STACK_ENV_MODULE": "stack.env_module",
         "MONAN_JEDI_RUN_ID": "workflow.run_id",
         "MONAN_JEDI_CC": "compilers.cc",
@@ -76,6 +69,7 @@ def main():
         "MONAN_JEDI_MPIF90": "mpi.mpif90",
         "JEDI_BUNDLE_REPO": "jedi_bundle.repo",
         "JEDI_BUNDLE_REF": "jedi_bundle.ref",
+        "JEDI_BUNDLE_CMAKELISTS_TEMPLATE": "jedi_bundle.cmakelists_template",
         "MONAN_JEDI_BUILD_JOBS": "build.jobs",
         "MONAN_JEDI_CTEST_REGEX": "ctest.login_regex",
         "MONAN_JEDI_CTEST_PBS_REGEX": "ctest.pbs_regex",
@@ -89,6 +83,8 @@ def main():
     }
 
     defaults = {
+        "STACK_OWNER": os.environ.get("USER", "unknown"),
+        "STACK_SITE_SETUP": "configs/sites/tier2/jaci/setup.sh",
         "MONAN_JEDI_CC": "cc",
         "MONAN_JEDI_CXX": "CC",
         "MONAN_JEDI_FC": "ftn",
@@ -101,6 +97,7 @@ def main():
         "MONAN_JEDI_MPIF90": "ftn",
         "JEDI_BUNDLE_REPO": "https://github.com/JCSDA/jedi-bundle.git",
         "JEDI_BUNDLE_REF": "develop",
+        "JEDI_BUNDLE_CMAKELISTS_TEMPLATE": "templates/CMakeLists.monan-jedi-mpas-only.txt",
         "MONAN_JEDI_BUILD_JOBS": "8",
         "MONAN_JEDI_CTEST_JOBS": "1",
         "MONAN_JEDI_PBS_QUEUE": "pesqmini",
