@@ -57,6 +57,7 @@ monan_jedi_reset_modules() {
     export MODULEPATH="${cleaned_modulepath}"
   fi
 
+  # Rebuild the base JACI/CrayPE module search path from known system locations.
   for d in \
     /opt/cray/pe/modulefiles \
     /opt/cray/modulefiles \
@@ -81,12 +82,19 @@ monan_jedi_load_stack() {
 
   monan_jedi_reset_modules
 
-  cd "${STACK_ROOT}"
+  # Source the site setup from the spack-stack tree to recreate the JACI CrayPE
+  # environment expected by the generated modules.
+  cd "${STACK_ROOT}" || {
+    log_error "Failed to enter stack root: ${STACK_ROOT}"
+    exit 1
+  }
   source configs/sites/tier2/jaci/setup.sh
 
+  # Load the selected generated stack environment module.
   module use "${STACK_MODULE_ROOT}"
   module load "${STACK_ENV_MODULE}"
 
+  # Resolve compilers and MPI wrappers after the stack environment is active.
   export CC="$(resolve_cmd CC "${MONAN_JEDI_CC}")"
   export CXX="$(resolve_cmd CXX "${MONAN_JEDI_CXX}")"
   export FC="$(resolve_cmd FC "${MONAN_JEDI_FC}")"
