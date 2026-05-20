@@ -24,15 +24,22 @@ monan_jedi_collect_logs() {
     echo "# MONAN-JEDI log summary"
     echo "GeneratedAt=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
     echo
+
+    # List all generated logs so the summary works as a compact index.
     echo "## Files"
     find "${MONAN_JEDI_LOG_ROOT}" -type f | sort
     echo
+
+    # Tail sections keep the summary readable while still exposing the most
+    # relevant failures usually printed near the end of each log.
     echo "## Configure tail"
     tail -n 80 "${MONAN_JEDI_LOG_ROOT}/04_ecbuild.log" 2>/dev/null || true
     echo
+
     echo "## Build tail"
     tail -n 120 "${MONAN_JEDI_LOG_ROOT}/05_make.log" 2>/dev/null || true
     echo
+
     echo "## CTest tail"
     tail -n 120 "${MONAN_JEDI_LOG_ROOT}/06_ctest.log" 2>/dev/null || true
   } | tee "${summary_file}"
