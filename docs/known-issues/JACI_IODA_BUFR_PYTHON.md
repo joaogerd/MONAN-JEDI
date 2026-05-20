@@ -115,20 +115,22 @@ Therefore, this is not currently treated as a JACI-specific compiler, MPI or PBS
 
 For complete JEDI CTest validation on JACI using the current stack, exclude these two known tests:
 
-```bash
-export MONAN_JEDI_CTEST_EXCLUDE_REGEX='^(ioda_bufr_python_encoder|ioda_bufr_python_parallel)$'
+```yaml
+ctest:
+  exclude_regex: "^(ioda_bufr_python_encoder|ioda_bufr_python_parallel)$"
 ```
 
 When combining with the known MPAS-JEDI numerical reference issue, use:
 
-```bash
-export MONAN_JEDI_CTEST_EXCLUDE_REGEX='^(ioda_bufr_python_encoder|ioda_bufr_python_parallel|mpasjedi_lgetkf_height_vloc)$'
+```yaml
+ctest:
+  exclude_regex: "^(ioda_bufr_python_encoder|ioda_bufr_python_parallel|mpasjedi_lgetkf_height_vloc)$"
 ```
 
 Then run:
 
 ```bash
-bash scripts/11_test_all_jedi_pbs.sh
+bash scripts/monan-jedi.sh test-pbs --config config/jaci.yaml
 ```
 
 Expected result for the current validation set:
