@@ -16,9 +16,12 @@
 #   ctest exits with status zero and the selected tests pass.
 
 monan_jedi_test_login() {
+  # Recreate the same stack environment used by configure and build.
   monan_jedi_load_stack
   require_cmd ctest
 
+  # Restrict login-node tests by default to avoid launching large MPI workloads
+  # outside PBS compute nodes.
   local login_safe_regex="${MONAN_JEDI_CTEST_REGEX:-^mpasjedi_coding_norms$}"
 
   if [[ ! -f "${JEDI_BUNDLE_BUILD_DIR}/CTestTestfile.cmake" ]]; then
@@ -26,7 +29,10 @@ monan_jedi_test_login() {
     exit 1
   fi
 
-  cd "${JEDI_BUNDLE_BUILD_DIR}"
+  cd "${JEDI_BUNDLE_BUILD_DIR}" || {
+    log_error "Failed to enter build directory: ${JEDI_BUNDLE_BUILD_DIR}"
+    exit 1
+  }
 
   ctest --output-on-failure \
     -j "${MONAN_JEDI_CTEST_JOBS}" \
