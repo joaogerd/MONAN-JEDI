@@ -34,6 +34,8 @@ monan_jedi_test_pbs() {
     exit 1
   fi
 
+  # The PBS job must be able to cd back into the repository from the compute
+  # node. Restrict execution to shared filesystems used on JACI.
   case "${PWD}" in
     /p/*|/lustre/*) ;;
     *)
@@ -50,6 +52,8 @@ monan_jedi_test_pbs() {
   repo_dir="$(pwd)"
   test_stamp="${MONAN_JEDI_TEST_LOG_STAMP:-$(date -u +%Y%m%dT%H%M%SZ)}"
 
+  # Default PBS and CTest settings. The YAML configuration or environment can
+  # override these values before this routine is called.
   export MONAN_JEDI_PBS_QUEUE="${MONAN_JEDI_PBS_QUEUE:-pesqmini}"
   export MONAN_JEDI_PBS_NCPUS="${MONAN_JEDI_PBS_NCPUS:-64}"
   export MONAN_JEDI_PBS_WALLTIME="${MONAN_JEDI_PBS_WALLTIME:-06:00:00}"
@@ -59,6 +63,8 @@ monan_jedi_test_pbs() {
 
   mkdir -p "${MONAN_JEDI_LOG_ROOT}"
 
+  # Timestamped files keep previous runs available. The 11_* files provide
+  # stable names for the most recent PBS and CTest execution.
   pbs_script="${MONAN_JEDI_LOG_ROOT}/jedi_all_tests_${test_stamp}.pbs"
   pbs_log="${MONAN_JEDI_LOG_ROOT}/jedi_all_tests_${test_stamp}.pbs.log"
   ctest_log="${MONAN_JEDI_LOG_ROOT}/jedi_all_tests_${test_stamp}.ctest.log"
@@ -67,6 +73,8 @@ monan_jedi_test_pbs() {
   latest_pbs_err="${MONAN_JEDI_LOG_ROOT}/11_ctest_all_pbs.err"
   latest_ctest_log="${MONAN_JEDI_LOG_ROOT}/11_ctest_all_pbs.log"
 
+  # Generate the PBS job script with the current configuration exported
+  # explicitly. This makes the job reproducible from the submitted script alone.
   cat > "${pbs_script}" <<EOF
 #!/bin/bash
 #PBS -N jedi_all_ctest
@@ -132,6 +140,8 @@ cp -f "\${CTEST_LOG}" "\${LATEST_CTEST_LOG}"
 EOF
 
   chmod +x "${pbs_script}"
+
+  # Update stable latest-file references for users and post-processing scripts.
   cp -f "${pbs_script}" "${latest_pbs_script}"
   : > "${latest_pbs_err}"
   ln -sfn "$(basename "${pbs_log}")" "${latest_pbs_log}"
@@ -145,6 +155,8 @@ EOF
   log_info "  jobs=${MONAN_JEDI_CTEST_JOBS}"
   log_info "  exclude=${MONAN_JEDI_CTEST_EXCLUDE_REGEX}"
 
+  # Submit automatically by default, but allow review-only mode through the YAML
+  # configuration or environment.
   if [[ "${MONAN_JEDI_SUBMIT_JOB}" == "1" ]]; then
     qsub "${pbs_script}" | tee "${MONAN_JEDI_LOG_ROOT}/11_ctest_all_pbs_jobid.txt"
   else
