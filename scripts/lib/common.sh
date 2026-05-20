@@ -1,5 +1,25 @@
 #!/usr/bin/env bash
-# Common helpers for MONAN-JEDI scripts.
+# Common helper functions for MONAN-JEDI scripts.
+#
+# Purpose:
+#   Provide small shared shell utilities used by the workflow modules.
+#   This file should remain independent from site-specific paths and from the
+#   Spack-stack environment.
+#
+# Functions:
+#   log_info, log_warn, log_error
+#     Print standardized messages.
+#
+#   require_cmd <command>
+#     Abort if a required command is not available in PATH.
+#
+#   resolve_cmd <name> <value>
+#     Resolve either an absolute executable path or a command name after the
+#     stack environment has been loaded.
+#
+# Expected result:
+#   All workflow modules can emit consistent messages and fail early when a
+#   required command or compiler wrapper is missing.
 
 log_info()  { printf '[INFO] %s\n' "$*"; }
 log_warn()  { printf '[WARN] %s\n' "$*" >&2; }
