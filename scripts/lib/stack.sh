@@ -1,5 +1,24 @@
 #!/usr/bin/env bash
 # Stack environment handling.
+#
+# Purpose:
+#   Load the JACI CrayPE environment and the selected spack-stack module set
+#   required by MONAN-JEDI.
+#
+# Responsibilities:
+#   - reset conflicting modules from previous shell sessions
+#   - rebuild MODULEPATH for the JACI site environment
+#   - load the selected stack module environment
+#   - resolve compiler and MPI wrapper commands
+#   - record environment snapshots for troubleshooting
+#
+# Important:
+#   This module assumes that the stack installation already exists and was
+#   previously built and validated.
+#
+# Expected result:
+#   After monan_jedi_load_stack completes, ecbuild, cmake, compilers and MPI
+#   wrappers must resolve consistently from the selected spack-stack instance.
 
 monan_jedi_reset_modules() {
   # Start from a clean module state before loading the JACI CrayPE stack.
