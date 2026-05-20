@@ -17,16 +17,30 @@ require_cmd() {
   fi
 }
 
+# Current user project area. This is where MONAN-JEDI source, build trees and
+# logs are expected to live for the user running the scripts.
 export PROJECT_ROOT="${PROJECT_ROOT:-/p/projetos/monan_das/${USER}}"
+
+# Owner of the shared spack-stack installation. This may be different from the
+# user running MONAN-JEDI. For example, other users can test MONAN-JEDI in their
+# own accounts while using the stack installed under joao.gerd.
+export STACK_OWNER="${STACK_OWNER:-${USER}}"
+export STACK_PROJECT_ROOT="${STACK_PROJECT_ROOT:-/p/projetos/monan_das/${STACK_OWNER}}"
 export STACK_TEST_ID="${STACK_TEST_ID:-spack-stack-inpe-overlay-20260515T181917Z}"
+
+# MONAN-JEDI test identifier. Keep this unique for each independent build/test
+# attempt unless intentionally reusing an existing build tree.
 export MONAN_JEDI_TEST_ID="${MONAN_JEDI_TEST_ID:-monan-jedi-mpas-only}"
 
-export STACK_WORK_ROOT="${STACK_WORK_ROOT:-${PROJECT_ROOT}/work/${STACK_TEST_ID}}"
+# Stack paths. STACK_WORK_ROOT defaults to the STACK_OWNER area, not the current
+# user's area. Override STACK_ROOT directly if the stack lives somewhere else.
+export STACK_WORK_ROOT="${STACK_WORK_ROOT:-${STACK_PROJECT_ROOT}/work/${STACK_TEST_ID}}"
 export STACK_ENV_NAME="${STACK_ENV_NAME:-jaci-mpas-jedi-gcc12-craympich}"
 export STACK_ROOT="${STACK_ROOT:-${STACK_WORK_ROOT}/spack-stack}"
 export STACK_MODULE_ROOT="${STACK_MODULE_ROOT:-${STACK_ROOT}/envs/${STACK_ENV_NAME}/modules}"
 export STACK_ENV_MODULE="${STACK_ENV_MODULE:-cray-mpich/8.1.31/none/none/jedi-mpas-env/1.0.0}"
 
+# MONAN-JEDI paths. These remain under the current user by default.
 export MONAN_JEDI_WORK_ROOT="${MONAN_JEDI_WORK_ROOT:-${PROJECT_ROOT}/work/${MONAN_JEDI_TEST_ID}}"
 export MONAN_JEDI_LOG_ROOT="${MONAN_JEDI_LOG_ROOT:-${PROJECT_ROOT}/logs/${MONAN_JEDI_TEST_ID}}"
 
@@ -58,13 +72,14 @@ reset_jaci_modules() {
 load_monan_jedi_stack() {
   if [[ ! -d "${STACK_ROOT}" ]]; then
     log_error "STACK_ROOT not found: ${STACK_ROOT}"
-    log_error "Create and validate the stack first using spack-stack-inpe."
+    log_error "Check STACK_OWNER, STACK_TEST_ID or STACK_ROOT."
+    log_error "Expected shared stack path: /p/projetos/monan_das/<STACK_OWNER>/work/<STACK_TEST_ID>/spack-stack"
     exit 1
   fi
 
   if [[ ! -d "${STACK_MODULE_ROOT}" ]]; then
     log_error "STACK_MODULE_ROOT not found: ${STACK_MODULE_ROOT}"
-    log_error "Run module generation in spack-stack-inpe first."
+    log_error "Run module generation in spack-stack-inpe first or check STACK_ENV_NAME."
     exit 1
   fi
 
@@ -77,8 +92,9 @@ load_monan_jedi_stack() {
   module use "${STACK_MODULE_ROOT}"
   module load "${STACK_ENV_MODULE}"
 
-  # shellcheck disable=SC1091
-  #source setup.sh
+  # Do not source the top-level spack-stack setup.sh here by default. For the
+  # MONAN-JEDI workflow we need the generated runtime module environment, not a
+  # writable Spack developer session.
 
   export CC="$(command -v cc)"
   export CXX="$(command -v CC)"
@@ -92,8 +108,11 @@ load_monan_jedi_stack() {
   export MPIF90="${FC}"
 
   log_info "Loaded MONAN-JEDI stack environment"
+  log_info "  STACK_OWNER=${STACK_OWNER}"
   log_info "  STACK_ROOT=${STACK_ROOT}"
   log_info "  STACK_ENV_MODULE=${STACK_ENV_MODULE}"
+  log_info "  MONAN_JEDI_WORK_ROOT=${MONAN_JEDI_WORK_ROOT}"
+  log_info "  MONAN_JEDI_LOG_ROOT=${MONAN_JEDI_LOG_ROOT}"
   log_info "  CC=${CC}"
   log_info "  CXX=${CXX}"
   log_info "  FC=${FC}"
@@ -104,7 +123,10 @@ record_environment_snapshot() {
   {
     echo "GeneratedAt=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
     echo "PROJECT_ROOT=${PROJECT_ROOT}"
+    echo "STACK_OWNER=${STACK_OWNER}"
+    echo "STACK_PROJECT_ROOT=${STACK_PROJECT_ROOT}"
     echo "STACK_TEST_ID=${STACK_TEST_ID}"
+    echo "STACK_WORK_ROOT=${STACK_WORK_ROOT}"
     echo "STACK_ROOT=${STACK_ROOT}"
     echo "STACK_ENV_NAME=${STACK_ENV_NAME}"
     echo "STACK_ENV_MODULE=${STACK_ENV_MODULE}"
