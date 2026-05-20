@@ -1,6 +1,16 @@
 #!/usr/bin/env bash
 # =============================================================================
-# MONAN-JEDI workflow orchestrator
+# MONAN-JEDI build and validation command dispatcher
+# =============================================================================
+# Purpose:
+#   Provide a single command-line entry point for preparing, configuring,
+#   building and validating the reduced MONAN-JEDI MPAS-JEDI bundle on JACI.
+#
+# Notes:
+#   The `test-pbs` command submits the complete CTest suite to PBS. It does not
+#   wait for the PBS job to finish. For that reason, the `all` command submits
+#   the PBS test job but does not collect logs immediately after submission.
+#   Run `logs` after the PBS job has completed.
 # =============================================================================
 
 set -euo pipefail
@@ -38,9 +48,13 @@ Commands:
   configure   Configure the bundle with ecbuild
   build       Build the configured bundle
   test        Run login-node-safe CTest subset
-  test-pbs    Submit CTest to PBS
-  logs        Collect logs
-  all         Run load, prepare, reduce, configure, build, test, logs
+  test-pbs    Submit the complete CTest suite to PBS
+  logs        Collect logs after local commands or after PBS job completion
+  all         Run load, prepare, reduce, configure, build, test, then submit test-pbs
+
+Important:
+  test-pbs submits a PBS job and returns immediately. Run logs only after the
+  PBS job has completed.
 EOF
 }
 
@@ -101,7 +115,9 @@ case "${command_name}" in
     monan_jedi_configure_bundle
     monan_jedi_build_bundle
     monan_jedi_test_login
-    monan_jedi_collect_logs
+    monan_jedi_test_pbs
+    log_info "PBS test job submitted. The 'all' command does not wait for PBS completion."
+    log_info "After the PBS job finishes, run: bash scripts/monan-jedi.sh logs --config ${MONAN_JEDI_CONFIG}"
     ;;
   ""|-h|--help)
     usage
