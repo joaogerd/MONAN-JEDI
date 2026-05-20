@@ -1,5 +1,36 @@
 #!/usr/bin/env bash
 # YAML configuration loader for MONAN-JEDI.
+#
+# Purpose:
+#   Read the selected YAML configuration file and export the environment
+#   variables used by the MONAN-JEDI workflow.
+#
+# Configuration model:
+#   The YAML file separates:
+#
+#     stack.*
+#       Shared spack-stack installation and module environment.
+#
+#     build.*
+#       User-owned MONAN-JEDI workflow instance.
+#
+#     compilers.*, mpi.*
+#       Compiler and MPI wrapper commands.
+#
+#     ctest.*, pbs.*
+#       Test and batch-system settings.
+#
+# Expected result:
+#   After load_monan_jedi_config completes, the workflow modules can use:
+#
+#     STACK_ROOT
+#     STACK_MODULE_ROOT
+#     MONAN_JEDI_WORK_ROOT
+#     MONAN_JEDI_LOG_ROOT
+#     JEDI_BUNDLE_SRC_DIR
+#     JEDI_BUNDLE_BUILD_DIR
+#
+#   and all compiler/MPI variables required by configure and build.
 
 load_monan_jedi_config() {
   local default_config="config/jaci.yaml"
