@@ -1,5 +1,16 @@
 #!/usr/bin/env bash
 # Log collection helpers for MONAN-JEDI.
+#
+# Purpose:
+#   Generate a compact summary of the logs produced during the MONAN-JEDI
+#   workflow execution.
+#
+# Produces:
+#   ${MONAN_JEDI_LOG_ROOT}/07_summary.log
+#
+# Expected result:
+#   The summary file contains the list of generated logs and the tail sections
+#   of configure, build and CTest logs for quick inspection.
 
 monan_jedi_collect_logs() {
   if [[ ! -d "${MONAN_JEDI_LOG_ROOT}" ]]; then
