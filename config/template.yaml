@@ -9,7 +9,7 @@
 # Then edit only the values that describe your machine, your shared stack and
 # your user-owned build area.
 #
-# This configuration is for preparing, compiling and testing MPAS-JEDI with an
+# This configuration is for compiling and testing the MONAN-JEDI bundle with an
 # existing spack-stack installation. It is not a MONAN operational assimilation
 # workflow configuration.
 #
@@ -18,7 +18,7 @@
 # Keep these two filesystem areas separate:
 #
 #   1. project.root
-#      User-owned area where source trees, build trees and logs are written.
+#      User-owned area where build trees and logs are written.
 #      This directory must be writable by the user running the scripts.
 #
 #   2. stack.root or stack.owner + stack.instance
@@ -32,8 +32,8 @@ site: site-name
 
 project:
   # User-owned MONAN-JEDI workspace root.
-  # Source/build trees are created under: ${project.root}/work/${build.id}
-  # Logs are created under:               ${project.root}/logs/${build.id}
+  # Build trees are created under: ${project.root}/work/${build.id}
+  # Logs are created under:        ${project.root}/logs/${build.id}
   root: /path/to/user/workspace
 
 stack:
@@ -75,8 +75,8 @@ stack:
   env_module: module/name
 
 build:
-  # Identifier for this preparation/compilation/test attempt.
-  # Change this when you want a new independent source/build/log tree.
+  # Identifier for this compilation/test attempt.
+  # Change this when you want a new independent build/log tree.
   id: monan-jedi-build-name
 
   # Number of parallel build jobs passed to make.
@@ -101,14 +101,6 @@ mpi:
   mpifc: ftn
   mpif77: ftn
   mpif90: ftn
-
-jedi_bundle:
-  # Repository and reference used to prepare the local JEDI bundle source tree.
-  repo: https://github.com/JCSDA/jedi-bundle.git
-  ref: develop
-
-  # Template copied to jedi-bundle/CMakeLists.txt by the reduce step.
-  cmakelists_template: templates/CMakeLists.monan-jedi-mpas-only.txt
 
 ctest:
   # Login-node-safe CTest subset.
