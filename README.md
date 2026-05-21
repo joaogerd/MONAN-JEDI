@@ -137,7 +137,7 @@ The `ctest -N` command lists the configured tests without executing them. The `m
 For full validation, do not run the complete CTest suite directly on a login node. Use the workflow PBS helper instead:
 
 ```bash
-cd /p/projetos/monan_das/${USER}/work/MONAN-JEDI
+cd ../
 bash scripts/monan-jedi.sh test-pbs --config config/jaci.yaml
 ```
 
