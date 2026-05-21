@@ -54,15 +54,27 @@ bash scripts/monan-jedi.sh <command> --config config/jaci.yaml
 Available commands:
 
 ```text
-load        Load and validate the spack-stack environment
-prepare     Clone/update jedi-bundle
-reduce      Generate the reduced MPAS-JEDI-only bundle logic
-configure   Configure the bundle with ecbuild
-build       Build the configured bundle
-test        Run the login-node-safe CTest subset
-test-pbs    Submit CTest to PBS
-logs        Collect logs
-all         Run the main workflow sequence
+load              Load and validate the spack-stack environment
+prepare           Clone/update jedi-bundle
+reduce            Generate the reduced MPAS-JEDI-only bundle logic
+configure         Configure the bundle with ecbuild
+build             Build the configured bundle
+test              Run the login-node-safe CTest subset
+test-pbs          Submit CTest to PBS
+logs              Collect logs
+all               Run the main workflow sequence
+```
+
+Resume commands:
+
+```text
+from-load         Resume from load, then run prepare, reduce, configure, build, test, logs
+from-prepare      Resume from prepare, then run reduce, configure, build, test, logs
+from-reduce       Resume from reduce, then run configure, build, test, logs
+from-configure    Resume from configure, then run build, test, logs
+from-build        Resume from build, then run test, logs
+from-test         Resume from test, then run logs
+from-test-pbs     Resume from PBS test submission, then run logs
 ```
 
 Example:
@@ -80,6 +92,20 @@ Or, for the full sequence:
 
 ```bash
 bash scripts/monan-jedi.sh all --config config/jaci.yaml
+```
+
+If a workflow stage fails and the problem is corrected, resume from the failed stage instead of manually typing the remaining commands.
+
+Example: resume after a configure failure:
+
+```bash
+bash scripts/monan-jedi.sh from-configure --config config/jaci.yaml
+```
+
+Example: resume after a build failure:
+
+```bash
+bash scripts/monan-jedi.sh from-build --config config/jaci.yaml
 ```
 
 ## Repository layout
