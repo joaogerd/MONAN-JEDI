@@ -5,6 +5,11 @@
 
 set -euo pipefail
 
+# Keep generated files group-writable by default on shared project areas.
+# This supports collaborative validation under the monan_das group without
+# opening permissions to all users.
+umask 002
+
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # shellcheck source=lib/common.sh
@@ -41,6 +46,7 @@ Commands:
 Notes:
   The MONAN-JEDI repository root is now the bundle source tree.
   Commands prepare and reduce were removed from the main workflow.
+  Generated files use umask 002 to remain writable by the project group.
 EOF
 }
 
