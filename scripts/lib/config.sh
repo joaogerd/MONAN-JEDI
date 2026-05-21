@@ -22,11 +22,14 @@
 #
 # Expected result:
 #   After load_monan_jedi_config completes, the workflow modules can use the
-#   derived stack paths, work paths, log paths, JEDI bundle paths and tool
+#   derived stack paths, work paths, log paths, source path, build path and tool
 #   variables without reading the YAML file again.
 
 load_monan_jedi_config() {
   local default_config="config/jaci.yaml"
+  local repo_root
+
+  repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
   # Allow the user to override the configuration file while keeping the JACI
   # configuration as the default workflow entry point.
@@ -73,14 +76,18 @@ load_monan_jedi_config() {
   export STACK_ROOT="${STACK_ROOT:-${STACK_WORK_ROOT}/spack-stack}"
   export STACK_MODULE_ROOT="${STACK_MODULE_ROOT:-${STACK_ROOT}/envs/${STACK_ENV_NAME}/modules}"
 
-  # User-owned workflow directories. They are intentionally derived separately
-  # from the shared spack-stack installation.
+  # User-owned workflow directories. Logs are kept outside the repository by
+  # default, while the build tree defaults to ${repo_root}/build so manual and
+  # scripted workflows use the same location.
   export MONAN_JEDI_WORK_ROOT="${MONAN_JEDI_WORK_ROOT:-${PROJECT_ROOT}/work/${MONAN_JEDI_RUN_ID}}"
   export MONAN_JEDI_LOG_ROOT="${MONAN_JEDI_LOG_ROOT:-${PROJECT_ROOT}/logs/${MONAN_JEDI_RUN_ID}}"
 
-  # Default JEDI bundle source and build paths for the selected run id.
-  export JEDI_BUNDLE_SRC_DIR="${JEDI_BUNDLE_SRC_DIR:-${MONAN_JEDI_WORK_ROOT}/jedi-bundle}"
-  export JEDI_BUNDLE_BUILD_DIR="${JEDI_BUNDLE_BUILD_DIR:-${MONAN_JEDI_WORK_ROOT}/build-jedi-bundle-mpas-only}"
+  # The MONAN-JEDI repository root is now the bundle source tree. Keep the old
+  # JEDI_BUNDLE_* variable names as compatibility aliases for test and PBS code.
+  export MONAN_JEDI_SOURCE_DIR="${MONAN_JEDI_SOURCE_DIR:-${repo_root}}"
+  export MONAN_JEDI_BUILD_DIR="${MONAN_JEDI_BUILD_DIR:-${MONAN_JEDI_SOURCE_DIR}/build}"
+  export JEDI_BUNDLE_SRC_DIR="${JEDI_BUNDLE_SRC_DIR:-${MONAN_JEDI_SOURCE_DIR}}"
+  export JEDI_BUNDLE_BUILD_DIR="${JEDI_BUNDLE_BUILD_DIR:-${MONAN_JEDI_BUILD_DIR}}"
 
   mkdir -p "${MONAN_JEDI_WORK_ROOT}" "${MONAN_JEDI_LOG_ROOT}"
 }

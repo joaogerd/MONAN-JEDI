@@ -5,6 +5,11 @@
 
 set -euo pipefail
 
+# Keep generated files group-writable by default on shared project areas.
+# This supports collaborative validation under the monan_das group without
+# opening permissions to all users.
+umask 002
+
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # shellcheck source=lib/common.sh
@@ -13,8 +18,6 @@ source "${script_dir}/lib/common.sh"
 source "${script_dir}/lib/config.sh"
 # shellcheck source=lib/stack.sh
 source "${script_dir}/lib/stack.sh"
-# shellcheck source=lib/bundle.sh
-source "${script_dir}/lib/bundle.sh"
 # shellcheck source=lib/configure.sh
 source "${script_dir}/lib/configure.sh"
 # shellcheck source=lib/build.sh
@@ -33,14 +36,17 @@ Usage:
 
 Commands:
   load        Load and validate the spack-stack environment
-  prepare     Clone/update jedi-bundle
-  reduce      Generate reduced MPAS-JEDI-only CMakeLists.txt
-  configure   Configure the bundle with ecbuild
+  configure   Configure the MONAN-JEDI bundle with ecbuild
   build       Build the configured bundle
   test        Run login-node-safe CTest subset
   test-pbs    Submit CTest to PBS
   logs        Collect logs
-  all         Run load, prepare, reduce, configure, build, test, logs
+  all         Run load, configure, build, test, logs
+
+Notes:
+  The MONAN-JEDI repository root is now the bundle source tree.
+  Commands prepare and reduce were removed from the main workflow.
+  Generated files use umask 002 to remain writable by the project group.
 EOF
 }
 
@@ -72,12 +78,6 @@ case "${command_name}" in
     monan_jedi_load_stack
     monan_jedi_record_environment_snapshot "${MONAN_JEDI_LOG_ROOT}/01_stack_environment.log"
     ;;
-  prepare)
-    monan_jedi_prepare_bundle
-    ;;
-  reduce)
-    monan_jedi_create_mpas_only_bundle
-    ;;
   configure)
     monan_jedi_configure_bundle
     ;;
@@ -96,8 +96,6 @@ case "${command_name}" in
   all)
     monan_jedi_load_stack
     monan_jedi_record_environment_snapshot "${MONAN_JEDI_LOG_ROOT}/01_stack_environment.log"
-    monan_jedi_prepare_bundle
-    monan_jedi_create_mpas_only_bundle
     monan_jedi_configure_bundle
     monan_jedi_build_bundle
     monan_jedi_test_login

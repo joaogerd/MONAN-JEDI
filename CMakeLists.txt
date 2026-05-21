@@ -1,8 +1,12 @@
 # MONAN-JEDI reduced MPAS-JEDI-only bundle for JACI validation.
 #
-# This file is copied by scripts/lib/bundle.sh to the top-level CMakeLists.txt
-# of a local JCSDA/jedi-bundle checkout when testing the reduced MONAN-JEDI
-# MPAS-JEDI-only workflow.
+# This is the project-controlled bundle definition used by MONAN-JEDI.
+# It was derived from the JCSDA jedi-bundle workflow and reduced for the
+# MPAS-JEDI-only validation workflow on JACI.
+#
+# The original upstream reference must be documented in docs/BUNDLE_ORIGIN.md.
+# This repository now owns this CMakeLists.txt directly instead of cloning
+# jedi-bundle and replacing its top-level CMakeLists.txt during the build.
 #
 # This file does not create or modify the Spack-stack environment. The required
 # software stack must already have been created and validated separately.

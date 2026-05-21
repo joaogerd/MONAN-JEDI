@@ -8,7 +8,9 @@ This repository is intentionally separated from `spack-stack-inpe`.
 
 `spack-stack-inpe` contains the site configuration and the reproducible software stack for JACI.
 
-`MONAN-JEDI` contains the workflow used to prepare, configure, build and validate the MPAS-JEDI/JEDI bundle using that stack.
+`MONAN-JEDI` contains the project-controlled bundle definition, configuration, build workflow and validation workflow used to compile and test the current MPAS-JEDI-only baseline with that stack.
+
+The repository root is now the bundle source tree. The top-level `CMakeLists.txt` is the MONAN-JEDI bundle definition. The workflow no longer clones `JCSDA/jedi-bundle` and no longer replaces its `CMakeLists.txt` during the build.
 
 ## Initial target
 
@@ -35,7 +37,7 @@ For JACI, the default configuration is:
 config/jaci.yaml
 ```
 
-This file defines the stack instance, stack module, workflow run identifier, compiler wrappers, MPI wrappers, JEDI bundle reference, build options, CTest options and PBS options.
+This file defines the stack instance, stack module, workflow run identifier, compiler wrappers, MPI wrappers, build options, CTest options and PBS options.
 
 A generic template for new sites is available at:
 
@@ -55,9 +57,7 @@ Available commands:
 
 ```text
 load        Load and validate the spack-stack environment
-prepare     Clone/update jedi-bundle
-reduce      Generate the reduced MPAS-JEDI-only bundle logic
-configure   Configure the bundle with ecbuild
+configure   Configure the MONAN-JEDI bundle with ecbuild
 build       Build the configured bundle
 test        Run the login-node-safe CTest subset
 test-pbs    Submit CTest to PBS
@@ -69,34 +69,95 @@ Example:
 
 ```bash
 bash scripts/monan-jedi.sh load --config config/jaci.yaml
-bash scripts/monan-jedi.sh prepare --config config/jaci.yaml
 bash scripts/monan-jedi.sh configure --config config/jaci.yaml
 bash scripts/monan-jedi.sh build --config config/jaci.yaml
 bash scripts/monan-jedi.sh test --config config/jaci.yaml
 bash scripts/monan-jedi.sh logs --config config/jaci.yaml
 ```
 
-Or, for the full sequence:
+Or, for the main sequence:
 
 ```bash
 bash scripts/monan-jedi.sh all --config config/jaci.yaml
+```
+
+## Manual minimal build and test
+
+Users who do not want to use the workflow scripts can load the stack, build and run a minimal login-node-safe test directly from the repository root:
+
+```bash
+module --force purge 2>/dev/null || module purge
+
+export STACK_ROOT=/p/projetos/monan_das/joao.gerd/work/spack-stack-inpe-overlay-20260515T181917Z/spack-stack
+export STACK_ENV_NAME=jaci-mpas-jedi-gcc12-craympich
+export STACK_MODULE_ROOT=${STACK_ROOT}/envs/${STACK_ENV_NAME}/modules
+export STACK_ENV_MODULE=cray-mpich/8.1.31/none/none/jedi-mpas-env/1.0.0
+
+cd ${STACK_ROOT}
+source configs/sites/tier2/jaci/setup.sh
+
+module use ${STACK_MODULE_ROOT}
+module load ${STACK_ENV_MODULE}
+
+export CC=cc
+export CXX=CC
+export FC=ftn
+export MPICC=cc
+export MPICXX=CC
+export MPIFC=ftn
+
+cd /p/projetos/monan_das/${USER}/work
+git clone https://github.com/joaogerd/MONAN-JEDI.git
+cd MONAN-JEDI
+
+mkdir -p build
+cd build
+
+ecbuild .. \
+  -DCMAKE_C_COMPILER=${CC} \
+  -DCMAKE_CXX_COMPILER=${CXX} \
+  -DCMAKE_Fortran_COMPILER=${FC} \
+  -DMPI_C_COMPILER=${MPICC} \
+  -DMPI_CXX_COMPILER=${MPICXX} \
+  -DMPI_Fortran_COMPILER=${MPIFC} \
+  -DPython3_EXECUTABLE=$(which python) \
+  -DPython_EXECUTABLE=$(which python) \
+  -DPYTHON_EXECUTABLE=$(which python) \
+  -DBUILD_MPAS=ON \
+  -DBUILD_GSIBEC=OFF
+
+make -j 8
+
+ctest -N
+ctest --output-on-failure -R '^mpasjedi_coding_norms$'
+```
+
+The `ctest -N` command lists the configured tests without executing them. The `mpasjedi_coding_norms` test is the minimal login-node-safe test currently used by the scripted workflow.
+
+For full validation, do not run the complete CTest suite directly on a login node. Use the workflow PBS helper instead:
+
+```bash
+cd ../
+bash scripts/monan-jedi.sh test-pbs --config config/jaci.yaml
 ```
 
 ## Repository layout
 
 ```text
 MONAN-JEDI/
+├── CMakeLists.txt
 ├── README.md
 ├── config/
 │   ├── jaci.yaml
 │   └── template.yaml
 ├── docs/
-│   └── JACI_MPAS_JEDI_BUILD_STEPS.md
+│   ├── BUNDLE_ORIGIN.md
+│   ├── JACI_MPAS_JEDI_BUILD_STEPS.md
+│   └── YAML_CONFIGURATION.md
 └── scripts/
     ├── monan-jedi.sh
     └── lib/
         ├── build.sh
-        ├── bundle.sh
         ├── common.sh
         ├── config.sh
         ├── configure.sh
@@ -111,6 +172,6 @@ MONAN-JEDI/
 
 User-editable settings should live in YAML configuration files, not inside shell scripts.
 
-The shell scripts provide workflow logic. The YAML files describe the site-specific environment.
+The repository root contains the bundle definition. The shell scripts provide workflow logic. The YAML files describe the site-specific runtime environment.
 
 This keeps the MONAN-JEDI workflow reproducible, easier to review and easier to adapt to additional INPE systems in the future.
