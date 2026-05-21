@@ -6,12 +6,13 @@ The YAML file is the normal user-editable interface for the MONAN-JEDI workflow.
 
 ## 1. General model
 
-The workflow separates two filesystem areas:
+The workflow separates three concepts:
 
-1. `project.root`: user-owned MONAN-JEDI workspace. This is where sources, build trees and logs are created.
-2. `stack.*`: existing spack-stack installation. This may be owned by another user and may be read-only for normal users.
+1. `MONAN-JEDI` repository root: source tree and bundle definition. The top-level `CMakeLists.txt` is the project-controlled bundle definition.
+2. `project.root`: user-owned workspace where build trees and logs are created.
+3. `stack.*`: existing spack-stack installation. This may be owned by another user and may be read-only for normal users.
 
-This distinction is important on JACI because several users may consume the same validated spack-stack while building and testing MONAN-JEDI in their own directories.
+The workflow no longer clones `JCSDA/jedi-bundle` and no longer applies a CMakeLists template during the build.
 
 ## 2. `site`
 
@@ -22,11 +23,6 @@ site: jaci
 Defines the target site name. The current expected value is `jaci`.
 
 Changing this value does not automatically make the workflow portable to another machine. Site-specific module loading is still implemented for JACI in `scripts/lib/stack.sh` and through `stack.site_setup`.
-
-Expected behavior:
-
-- `jaci`: use the JACI-oriented configuration and module assumptions.
-- any other value: currently informational only unless the scripts are extended.
 
 ## 3. `project.root`
 
@@ -50,20 +46,7 @@ Mapped internal variable:
 PROJECT_ROOT
 ```
 
-When to modify:
-
-- Change it if the user wants to build under another writable project directory.
-- Keep it under `/p` or `/lustre` on JACI, because compute nodes need to access the same files.
-
-Expected behavior:
-
-- `/p/projetos/monan_das/${USER}`: each user gets an isolated work and log tree.
-- shared directory: users may overwrite each other's builds unless `build.id` is unique.
-
-Risks:
-
-- If this path is not writable, the workflow fails when creating work or log directories.
-- If this path is local to a login node, PBS tests may fail on compute nodes.
+Use a writable shared filesystem path on JACI, preferably under `/p` or `/lustre`, because PBS compute nodes need to access the same files.
 
 ## 4. `stack` block
 
@@ -84,19 +67,7 @@ Mapped internal variable:
 STACK_OWNER
 ```
 
-When to modify:
-
-- Use your own username if you built your own stack.
-- Use another account if consuming a shared stack maintained by that account.
-
-Expected behavior:
-
-- `owner: joao.gerd`: default stack paths are derived under `/p/projetos/monan_das/joao.gerd`.
-- `owner: ${USER}`: default stack paths are derived under the current user's project area.
-
-Risk:
-
-- If the owner is wrong, `STACK_ROOT` and `STACK_MODULE_ROOT` will point to a nonexistent stack.
+Use your own username if you built your own stack. Use another account if consuming a shared stack maintained by that account.
 
 ### `stack.instance`
 
@@ -119,19 +90,6 @@ Used to derive:
 /p/projetos/monan_das/${stack.owner}/work/${stack.instance}
 ```
 
-When to modify:
-
-- Change it when using a different spack-stack installation.
-- Keep it fixed when multiple MONAN-JEDI builds should consume the same validated stack.
-
-Expected behavior:
-
-- Changing this value switches the stack instance used by all workflow stages.
-
-Risk:
-
-- If the selected stack was not built or validated for MPAS-JEDI, configure or build may fail.
-
 ### `stack.work_root`
 
 ```yaml
@@ -152,19 +110,6 @@ If empty, the scripts derive:
 ```text
 /p/projetos/monan_das/${stack.owner}/work/${stack.instance}
 ```
-
-When to modify:
-
-- Use only if the stack is not stored in the default project/work layout.
-
-Expected behavior:
-
-- Empty value: automatic default path.
-- Absolute path: use that path directly.
-
-Risk:
-
-- If this points to the MONAN-JEDI user workspace instead of the actual stack owner area, users may hit permission or missing-file errors.
 
 ### `stack.root`
 
@@ -187,19 +132,6 @@ If empty, the scripts derive:
 ${stack.work_root}/spack-stack
 ```
 
-When to modify:
-
-- Use only if the spack-stack root is not located at `${stack.work_root}/spack-stack`.
-
-Expected behavior:
-
-- Empty value: use the conventional derived path.
-- Absolute path: use that stack root directly.
-
-Risk:
-
-- If this path is wrong, the stack loader will fail before configure.
-
 ### `stack.env_name`
 
 ```yaml
@@ -220,18 +152,6 @@ Used to derive:
 ```text
 ${stack.root}/envs/${stack.env_name}/modules
 ```
-
-When to modify:
-
-- Change it when the stack environment name changes.
-
-Expected behavior:
-
-- Determines where generated modules are found when `stack.module_root` is empty.
-
-Risk:
-
-- If incorrect, `module use` points to the wrong or missing module tree.
 
 ### `stack.module_root`
 
@@ -254,19 +174,6 @@ If empty, the scripts derive:
 ${stack.root}/envs/${stack.env_name}/modules
 ```
 
-When to modify:
-
-- Use only if generated module files are located outside the standard spack-stack environment path.
-
-Expected behavior:
-
-- Empty value: automatic module path.
-- Absolute path: modules are loaded from that location.
-
-Risk:
-
-- If this path contains modules from another stack instance, the build may silently use inconsistent dependencies.
-
 ### `stack.site_setup`
 
 ```yaml
@@ -282,21 +189,7 @@ Mapped internal variable:
 STACK_SITE_SETUP
 ```
 
-Current note:
-
-The current stack loader is JACI-oriented and sources the JACI site setup from the stack root. This value documents the intended site setup path and should remain consistent with the stack layout.
-
-When to modify:
-
-- Only when the site setup path changes in the stack tree.
-
-Expected behavior:
-
-- Loads the CrayPE baseline expected by the generated stack module.
-
-Risk:
-
-- Using the wrong setup may load incompatible compiler, MPI or CrayPE modules.
+On JACI this should point to the site setup inside the spack-stack tree, not the root `spack-stack/setup.sh`.
 
 ### `stack.env_module`
 
@@ -313,17 +206,7 @@ Mapped internal variable:
 STACK_ENV_MODULE
 ```
 
-When to modify:
-
-- Change it when the generated environment module name changes.
-
-Expected behavior:
-
-- Controls the dependency set visible to CMake, ecbuild, make and ctest.
-
-Risk:
-
-- If the wrong module is loaded, CMake may find inconsistent libraries or fail to find JEDI dependencies.
+This controls the dependency set visible to CMake, ecbuild, make and ctest.
 
 ## 5. `build` block
 
@@ -349,19 +232,11 @@ ${project.root}/work/${build.id}
 ${project.root}/logs/${build.id}
 ```
 
-When to modify:
+The configured build directory is derived as:
 
-- Change it to create a fresh independent build and log tree.
-- Keep it fixed to reuse and overwrite the same work directory.
-
-Expected behavior:
-
-- Same value: previous work/build/log tree may be reused or overwritten by steps that clean build directories.
-- New value: creates a separate workflow instance.
-
-Risk:
-
-- Reusing the same value while changing stack or bundle commits can mix logs or source states.
+```text
+${project.root}/work/${build.id}/build
+```
 
 ### `build.jobs`
 
@@ -378,19 +253,7 @@ Mapped internal variable:
 MONAN_JEDI_BUILD_JOBS
 ```
 
-When to modify:
-
-- Increase for faster builds if the node and filesystem can handle it.
-- Decrease if builds fail due to memory pressure or filesystem stress.
-
-Expected behavior:
-
-- Higher value: faster build, more CPU and memory pressure.
-- Lower value: slower build, more conservative.
-
-Risk:
-
-- Too high may cause intermittent failures on shared filesystems or memory-constrained sessions.
+Increase only if the node and filesystem can handle it. Decrease if builds fail due to memory pressure or filesystem stress.
 
 ## 6. `compilers` block
 
@@ -425,29 +288,7 @@ F77
 F90
 ```
 
-Recommended JACI values:
-
-```yaml
-cc: cc
-cxx: CC
-fc: ftn
-f77: ftn
-f90: ftn
-```
-
-When to modify:
-
-- Usually do not modify on JACI CrayPE.
-- Modify only if the site requires absolute paths or different wrappers.
-
-Expected behavior:
-
-- `cc`, `CC`, `ftn`: use Cray compiler wrappers from the loaded environment.
-- absolute path: use the exact executable path if it exists and is executable.
-
-Risk:
-
-- Using raw `gcc`, `g++` or `gfortran` instead of CrayPE wrappers may break MPI and library detection.
+Recommended JACI values are `cc`, `CC` and `ftn`. Avoid raw `gcc`, `g++` or `gfortran` on JACI unless you are intentionally bypassing CrayPE.
 
 ## 7. `mpi` block
 
@@ -482,115 +323,9 @@ MPIF77
 MPIF90
 ```
 
-Recommended JACI values:
+On CrayPE, `cc`, `CC` and `ftn` act as compiler and MPI-aware wrappers.
 
-```yaml
-mpicc: cc
-mpicxx: CC
-mpifc: ftn
-mpif77: ftn
-mpif90: ftn
-```
-
-When to modify:
-
-- Usually do not modify on JACI CrayPE.
-- Modify only if MPI wrappers have different names in another environment.
-
-Expected behavior:
-
-- On CrayPE, `cc`, `CC` and `ftn` act as compiler and MPI-aware wrappers.
-
-Risk:
-
-- Pointing to a different MPI implementation than the one used by spack-stack can cause link or runtime failures.
-
-## 8. `jedi_bundle` block
-
-### `jedi_bundle.repo`
-
-```yaml
-jedi_bundle:
-  repo: https://github.com/JCSDA/jedi-bundle.git
-```
-
-Git repository used to prepare the local JEDI bundle source tree.
-
-Mapped internal variable:
-
-```text
-JEDI_BUNDLE_REPO
-```
-
-When to modify:
-
-- Change only if using a fork or institutional mirror.
-
-Expected behavior:
-
-- The `prepare` step clones or updates this repository under `JEDI_BUNDLE_SRC_DIR`.
-
-Risk:
-
-- A fork may contain different bundle structure or CMake behavior.
-
-### `jedi_bundle.ref`
-
-```yaml
-jedi_bundle:
-  ref: develop
-```
-
-Git branch, tag or commit checked out in the JEDI bundle repository.
-
-Mapped internal variable:
-
-```text
-JEDI_BUNDLE_REF
-```
-
-When to modify:
-
-- Use a branch for active development.
-- Use a tag or commit for reproducible validation.
-
-Expected behavior:
-
-- `develop`: tracks current upstream development and may change over time.
-- tag or commit: improves reproducibility.
-
-Risk:
-
-- `develop` is not stable by definition. Builds may change from one day to another.
-
-### `jedi_bundle.cmakelists_template`
-
-```yaml
-jedi_bundle:
-  cmakelists_template: templates/CMakeLists.monan-jedi-mpas-only.txt
-```
-
-Template copied over the top-level `CMakeLists.txt` of the local JEDI bundle source tree by the `reduce` step.
-
-Mapped internal variable:
-
-```text
-JEDI_BUNDLE_CMAKELISTS_TEMPLATE
-```
-
-When to modify:
-
-- Change only to use another reduced bundle definition.
-
-Expected behavior:
-
-- Controls which repositories are included in the reduced MPAS-JEDI-only workflow.
-
-Risk:
-
-- A template that references unavailable packages or incompatible commits will fail during configure.
-
-## 9. `ctest` block
+## 8. `ctest` block
 
 ### `ctest.login_regex`
 
@@ -607,24 +342,7 @@ Mapped internal variable:
 MONAN_JEDI_CTEST_REGEX
 ```
 
-Used by:
-
-```bash
-bash scripts/monan-jedi.sh test --config config/jaci.yaml
-```
-
-When to modify:
-
-- Use a narrow regex for tests known to be safe on login nodes.
-
-Expected behavior:
-
-- `^mpasjedi_coding_norms$`: runs only one lightweight script-style test.
-- broader regex: may run MPI or expensive tests on login node.
-
-Risk:
-
-- Running MPI tests on login nodes may fail or violate site usage policy.
+Use a narrow regex for tests known to be safe on login nodes.
 
 ### `ctest.pbs_regex`
 
@@ -641,23 +359,7 @@ Mapped internal variable:
 MONAN_JEDI_CTEST_PBS_REGEX
 ```
 
-Current full-suite policy:
-
-For the full PBS CTest suite, keep this empty. Empty means do not restrict tests with `ctest -R`.
-
-When to modify:
-
-- Set this only when intentionally testing a subset on a compute node.
-
-Expected behavior:
-
-- Empty string: run all configured tests, except those excluded by `ctest.exclude_regex`.
-- `^mpasjedi_geometry$`: run only the `mpasjedi_geometry` test.
-- `^mpasjedi_`: run only tests whose names start with `mpasjedi_`.
-
-Risk:
-
-- If set accidentally, the PBS job will not validate the complete suite.
+Current full-suite policy: keep this empty to avoid restricting tests with `ctest -R`.
 
 ### `ctest.exclude_regex`
 
@@ -674,28 +376,7 @@ Mapped internal variable:
 MONAN_JEDI_CTEST_EXCLUDE_REGEX
 ```
 
-When to modify:
-
-- Add known failing tests only after confirming they are unrelated to the current build or environment change.
-- Empty it when you want to run absolutely everything.
-
-Expected behavior:
-
-- Empty string: no tests are excluded.
-- Three-test regex above: runs the full suite except the three known issues.
-
-Expected current validation target:
-
-```text
-2294 configured tests
-3 excluded known issues
-2291 expected executed tests
-```
-
-Risk:
-
-- Excluding too broadly can hide real regressions.
-- Regex mistakes may exclude more tests than intended.
+Add known failing tests only after confirming they are unrelated to the current build or environment change.
 
 ### `ctest.jobs`
 
@@ -712,19 +393,7 @@ Mapped internal variable:
 MONAN_JEDI_CTEST_JOBS
 ```
 
-When to modify:
-
-- Start with `1` for first validation on JACI.
-- Increase carefully after confirming tests are stable and do not oversubscribe resources.
-
-Expected behavior:
-
-- `1`: most conservative and easiest to debug.
-- higher values: faster, but may increase contention.
-
-Risk:
-
-- Excessive parallelism can cause MPI resource conflicts, filesystem pressure or harder-to-read failures.
+Start with `1` for first validation on JACI.
 
 ### `ctest.allow_login_node_mpi_tests`
 
@@ -741,24 +410,9 @@ Mapped internal variable:
 ALLOW_LOGIN_NODE_MPI_TESTS
 ```
 
-Current behavior:
+Keep `false` on JACI for normal use.
 
-The login test command still relies mainly on `ctest.login_regex`. Keep this flag false unless the scripts are extended to enforce MPI-aware filtering.
-
-When to modify:
-
-- Keep `false` on JACI for normal use.
-
-Expected behavior:
-
-- `false`: documents that login-node testing should remain restricted.
-- `true`: should be used only by developers who know the selected tests do not launch MPI workloads.
-
-Risk:
-
-- Misuse can lead to MPI tests being run on login nodes.
-
-## 10. `pbs` block
+## 9. `pbs` block
 
 ### `pbs.queue`
 
@@ -775,18 +429,6 @@ Mapped internal variable:
 MONAN_JEDI_PBS_QUEUE
 ```
 
-When to modify:
-
-- Change according to JACI queue policy and availability.
-
-Expected behavior:
-
-- Determines where the test job is submitted.
-
-Risk:
-
-- Wrong queue may reject the job or leave it pending.
-
 ### `pbs.ncpus`
 
 ```yaml
@@ -801,26 +443,6 @@ Mapped internal variable:
 ```text
 MONAN_JEDI_PBS_NCPUS
 ```
-
-Used in PBS directive:
-
-```text
-#PBS -l select=1:ncpus=${MONAN_JEDI_PBS_NCPUS}
-```
-
-When to modify:
-
-- Increase only if the queue and node policy allow it.
-- Keep consistent with expected MPI/OpenMP behavior.
-
-Expected behavior:
-
-- `64`: requests one node allocation with 64 CPUs.
-
-Risk:
-
-- Too few CPUs may cause oversubscription.
-- Too many CPUs may make the job wait longer or be rejected by the queue.
 
 ### `pbs.walltime`
 
@@ -837,20 +459,7 @@ Mapped internal variable:
 MONAN_JEDI_PBS_WALLTIME
 ```
 
-When to modify:
-
-- Keep short for smoke tests.
-- Increase for the full 2291-test validation.
-
-Expected behavior:
-
-- `00:30:00`: useful for checking job generation, queue submission and early test behavior.
-- `06:00:00`: more appropriate for a full first validation, based on conservative HPC practice. This is a recommendation, not a measured guarantee for this exact build.
-
-Risk:
-
-- Too short: PBS kills the test job before completion.
-- Too long: job may wait longer in the queue depending on policy.
+Increase for full validations when necessary.
 
 ### `pbs.submit_job`
 
@@ -867,22 +476,9 @@ Mapped internal variable:
 MONAN_JEDI_SUBMIT_JOB
 ```
 
-When to modify:
+Use `false` when reviewing the generated PBS script before submission.
 
-- Use `true` for normal operation.
-- Use `false` when reviewing or editing the generated PBS script before submission.
-
-Expected behavior:
-
-- `true`: generate and submit with `qsub`.
-- `false`: generate the PBS script only and print the command to submit manually.
-
-Risk:
-
-- `true` submits immediately.
-- `false` requires manual `qsub`.
-
-## 11. Recommended current JACI testing configuration
+## 10. Recommended current JACI testing configuration
 
 For a full PBS validation excluding the three known failing tests:
 
@@ -901,17 +497,7 @@ pbs:
   submit_job: true
 ```
 
-For a quick PBS submission check only:
-
-```yaml
-pbs:
-  queue: pesqmini
-  ncpus: 64
-  walltime: "00:30:00"
-  submit_job: true
-```
-
-## 12. Environment-variable override behavior
+## 11. Environment-variable override behavior
 
 The YAML values are read by `scripts/lib/read_config.py`. If an environment variable is already exported before running the workflow, that value takes precedence over the YAML-derived value.
 
@@ -921,7 +507,5 @@ Example:
 export MONAN_JEDI_CTEST_JOBS=2
 bash scripts/monan-jedi.sh test-pbs --config config/jaci.yaml
 ```
-
-In this case, `ctest.jobs` in the YAML is ignored for that shell session.
 
 Use this only for temporary tests. For reproducible runs, prefer editing the YAML and committing the change.
