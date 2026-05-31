@@ -90,7 +90,7 @@ monan_jedi_build_obs2ioda() {
     "-DBUILD_GOES_ABI_CONVERTER=${MONAN_JEDI_OBS2IODA_BUILD_GOES_ABI_CONVERTER}" \
     2>&1 | tee "${MONAN_JEDI_LOG_ROOT}/08_obs2ioda_cmake.log"
 
-  cmake --build . -j "${MONAN_JEDI_OBS2IODA_JOBS}" 2>&1 | tee "${MONAN_JEDI_LOG_ROOT}/08_obs2ioda_build.log"
+  cmake --build . -j "${MONAN_JEDI_BUILD_JOBS}" 2>&1 | tee "${MONAN_JEDI_LOG_ROOT}/08_obs2ioda_build.log"
 
   built_exe="${MONAN_JEDI_OBS2IODA_BUILD_DIR}/bin/obs2ioda_v3"
   published_exe="${MONAN_JEDI_INSTALL_BIN_DIR}/${MONAN_JEDI_OBS2IODA_EXECUTABLE_NAME}"
