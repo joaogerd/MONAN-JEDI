@@ -39,7 +39,16 @@ For JACI, the default configuration is:
 config/jaci.yaml
 ```
 
-This file defines the stack instance, stack module, workflow run identifier, compiler wrappers, MPI wrappers, MPAS build options, `obs2ioda` build options, CTest options and PBS options.
+This file defines the stack instance, stack module, workflow run identifier, compiler wrappers, MPI wrappers, MPAS precision mode, build options, CTest options and PBS options.
+
+The MPAS precision mode is controlled by:
+
+```yaml
+model:
+  double_precision: ON
+```
+
+Use `ON` when validating the build with the `mpas-jedi` CTest suite. Use `OFF` only when the target workflow or tutorial requires a single-precision MPAS build.
 
 A generic template for new sites is available at:
 
@@ -90,6 +99,24 @@ Or, for the main sequence:
 bash scripts/monan-jedi.sh all --config config/jaci.yaml
 ```
 
+Before running `configure` or `all`, choose the MPAS precision mode in `config/jaci.yaml`:
+
+```yaml
+model:
+  double_precision: ON
+```
+
+For build validation with CTest, keep `double_precision: ON`. The upstream `mpas-bundle` README indicates that `MPAS_DOUBLE_PRECISION=ON` should be used when running the `mpas-jedi` test suite, and this is the default value.
+
+For workflow calculations that require single precision, set:
+
+```yaml
+model:
+  double_precision: OFF
+```
+
+Do not mix these two objectives when interpreting test results. The MPAS-JEDI tutorial documents that CTest reference files are produced with a double-precision build, so some CTest cases may fail with a single-precision build due to differences larger than the test tolerance.
+
 ## Manual minimal build and test
 
 Users who do not want to use the workflow scripts can load the stack, build and run a minimal login-node-safe test directly from the repository root:
@@ -133,7 +160,11 @@ ecbuild .. \
   -DPython_EXECUTABLE=$(which python) \
   -DPYTHON_EXECUTABLE=$(which python) \
   -DBUILD_MPAS=ON \
-  -DBUILD_GSIBEC=OFF
+  -DBUILD_GSIBEC=OFF \
+  -DMPAS_DOUBLE_PRECISION=ON
+
+# Use -DMPAS_DOUBLE_PRECISION=ON for CTest validation.
+# Use -DMPAS_DOUBLE_PRECISION=OFF only for single-precision workflow runs.
 
 make -j 8
 
