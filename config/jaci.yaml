@@ -132,8 +132,7 @@ obs2ioda:
 
   build_type: Release
   build_goes_abi_converter: 'OFF'
-  jobs: 8
-
+  
 compilers:
   # Compiler commands or absolute paths used by CMake/ecbuild.
   # On JACI CrayPE these should normally remain as cc, CC and ftn.
