@@ -89,6 +89,11 @@ monan_jedi_prepare_obs2ioda_source() {
 }
 
 monan_jedi_build_obs2ioda() {
+  if ! monan_jedi_obs2ioda_enabled; then
+    log_error "obs2ioda is disabled in ${MONAN_JEDI_CONFIG}. Set obs2ioda.enabled: true to build it."
+    exit 1
+  fi
+
   monan_jedi_load_stack
 
   require_cmd cmake
