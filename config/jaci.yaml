@@ -85,7 +85,7 @@ build:
 
 install:
   # Publication root for executables produced by this workflow.
-  # Empty means: ${project.root}/install/${build.id}
+  # Empty means: ${project.root}/builds/${build.id}
   root:
 
   # Common executable directory for the MONAN-JEDI bundle and auxiliary tools.
