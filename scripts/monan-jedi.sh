@@ -28,6 +28,8 @@ source "${script_dir}/lib/test.sh"
 source "${script_dir}/lib/pbs.sh"
 # shellcheck source=lib/logs.sh
 source "${script_dir}/lib/logs.sh"
+# shellcheck source=lib/obs2ioda.sh
+source "${script_dir}/lib/obs2ioda.sh"
 
 usage() {
   cat <<EOF
@@ -35,18 +37,22 @@ Usage:
   bash scripts/monan-jedi.sh <command> [--config config/jaci.yaml]
 
 Commands:
-  load        Load and validate the spack-stack environment
-  configure   Configure the MONAN-JEDI bundle with ecbuild
-  build       Build the configured bundle
-  test        Run login-node-safe CTest subset
-  test-pbs    Submit CTest to PBS
-  logs        Collect logs
-  all         Run load, configure, build, test, logs
+  load          Load and validate the spack-stack environment
+  configure     Configure the MONAN-JEDI bundle with ecbuild
+  build         Build the configured bundle
+  test          Run login-node-safe CTest subset
+  test-pbs      Submit CTest to PBS
+  obs2ioda      Build NCAR/obs2ioda with the MONAN-JEDI stack environment
+  logs          Collect logs
+  all           Run load, configure, build, test, logs
 
 Notes:
   The MONAN-JEDI repository root is now the bundle source tree.
   Commands prepare and reduce were removed from the main workflow.
   Generated files use umask 002 to remain writable by the project group.
+  MPAS precision is configured in YAML with model.double_precision.
+  Use ON for CTest validation and OFF only when a workflow/tutorial requires single precision.
+  obs2ioda is built as an auxiliary executable outside the main bundle build tree.
 EOF
 }
 
@@ -89,6 +95,9 @@ case "${command_name}" in
     ;;
   test-pbs)
     monan_jedi_test_pbs
+    ;;
+  obs2ioda)
+    monan_jedi_build_obs2ioda
     ;;
   logs)
     monan_jedi_collect_logs
