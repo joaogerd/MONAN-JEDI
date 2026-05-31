@@ -12,6 +12,8 @@ This repository is intentionally separated from `spack-stack-inpe`.
 
 The repository root is now the bundle source tree. The top-level `CMakeLists.txt` is the MONAN-JEDI bundle definition. The workflow no longer clones `JCSDA/jedi-bundle` and no longer replaces its `CMakeLists.txt` during the build.
 
+The auxiliary `obs2ioda` build is handled by the MONAN-JEDI workflow scripts, but it is kept outside the main bundle build tree.
+
 ## Initial target
 
 The first technical target is a reduced MPAS-JEDI-only build on JACI using:
@@ -37,7 +39,7 @@ For JACI, the default configuration is:
 config/jaci.yaml
 ```
 
-This file defines the stack instance, stack module, workflow run identifier, compiler wrappers, MPI wrappers, build options, CTest options and PBS options.
+This file defines the stack instance, stack module, workflow run identifier, compiler wrappers, MPI wrappers, MPAS build options, `obs2ioda` build options, CTest options and PBS options.
 
 A generic template for new sites is available at:
 
@@ -61,6 +63,7 @@ configure   Configure the MONAN-JEDI bundle with ecbuild
 build       Build the configured bundle
 test        Run the login-node-safe CTest subset
 test-pbs    Submit CTest to PBS
+obs2ioda    Build NCAR/obs2ioda with the MONAN-JEDI stack environment
 logs        Collect logs
 all         Run the main workflow sequence
 ```
@@ -73,6 +76,12 @@ bash scripts/monan-jedi.sh configure --config config/jaci.yaml
 bash scripts/monan-jedi.sh build --config config/jaci.yaml
 bash scripts/monan-jedi.sh test --config config/jaci.yaml
 bash scripts/monan-jedi.sh logs --config config/jaci.yaml
+```
+
+To build `obs2ioda` with the configured stack environment:
+
+```bash
+bash scripts/monan-jedi.sh obs2ioda --config config/jaci.yaml
 ```
 
 Or, for the main sequence:
@@ -107,7 +116,7 @@ export MPICXX=CC
 export MPIFC=ftn
 
 cd /p/projetos/monan_das/${USER}/work
-git clone https://github.com/joaogerd/MONAN-JEDI.git
+git clone https://github.com/GAD-DIMNT-CPTEC/MONAN-JEDI.git
 cd MONAN-JEDI
 
 mkdir -p build
@@ -153,6 +162,7 @@ MONAN-JEDI/
 ├── docs/
 │   ├── BUNDLE_ORIGIN.md
 │   ├── JACI_MPAS_JEDI_BUILD_STEPS.md
+│   ├── OBS2IODA_BUILD.md
 │   └── YAML_CONFIGURATION.md
 └── scripts/
     ├── monan-jedi.sh
@@ -162,6 +172,7 @@ MONAN-JEDI/
         ├── config.sh
         ├── configure.sh
         ├── logs.sh
+        ├── obs2ioda.sh
         ├── pbs.sh
         ├── read_config.py
         ├── stack.sh
