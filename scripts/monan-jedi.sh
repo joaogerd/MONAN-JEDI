@@ -107,6 +107,7 @@ case "${command_name}" in
     monan_jedi_record_environment_snapshot "${MONAN_JEDI_LOG_ROOT}/01_stack_environment.log"
     monan_jedi_configure_bundle
     monan_jedi_build_bundle
+    monan_jedi_build_obs2ioda
     monan_jedi_test_login
     monan_jedi_collect_logs
     ;;
